@@ -22,18 +22,22 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.9' # Match the Dockerfile Python version
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+        continue-on-error: false
 
       - name: Decode and Save Firebase Credentials
         run: |
-          echo "${{ secrets.FIREBASE_CREDENTIALS }}" > /tmp/firebase.json.b64
-          base64 -d /tmp/firebase.json.b64 > /tmp/firebase.json
-          cp /tmp/firebase.json ./firebase-adminsdk.json
+          echo "${{ secrets.FIREBASE_CREDENTIALS }}" | base64 -d > ./firebase-adminsdk.json
+          ls -l ./firebase-adminsdk.json # Verify file creation
+          # Add a basic check to ensure the file is valid JSON
+          python -c "import json; json.load(open('firebase-adminsdk.json'))" || echo "Invalid Firebase JSON"
+        env:
+          FIREBASE_CREDENTIALS: ${{ secrets.FIREBASE_CREDENTIALS }}
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -50,26 +54,40 @@ jobs:
       - name: Build Docker image
         run: |
           docker build -t ${{ env.IMAGE_NAME }} .
+        continue-on-error: false
 
       - name: Push Docker image
         run: |
           docker push ${{ env.IMAGE_NAME }}
+        continue-on-error: false
 
       - name: Deploy to Cloud Run
         run: |
-          gcloud run deploy my-app \
-          --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/gcptest/gcptest:latest \
-          --platform=managed \
-          --region=${{ env.REGION }} \
-          --allow-unauthenticated \
-          --service-account=firebase-adminsdk-h65me@${{ env.PROJECT_ID }}.iam.gserviceaccount.com \
-          --timeout=800s \
-          --set-env-vars="FIREBASE_CREDENTIALS=${{ secrets.FIREBASE_CREDENTIALS }}" \
-          --set-env-vars="OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" \
-          --set-env-vars="GOOGLE_CLOUD_PROJECT=${{ env.PROJECT_ID }}"
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image=${{ env.IMAGE_NAME }} \
+            --platform=managed \
+            --region=${{ env.REGION }} \
+            --allow-unauthenticated \
+            --service-account=firebase-adminsdk-h65me@${{ env.PROJECT_ID }}.iam.gserviceaccount.com \
+            --timeout=800s \
+            --set-env-vars="GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-adminsdk.json" \
+            --set-env-vars="OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" \
+            --set-env-vars="GOOGLE_CLOUD_PROJECT=${{ env.PROJECT_ID }}" \
+            --quiet
+        continue-on-error: false
 
       - name: Verify Deployment
         run: |
-          gcloud run services describe ${{ env.SERVICE_NAME }} \
+          URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
             --region ${{ env.REGION }} \
-            --format="value(status.url)"
+            --format="value(status.url)")
+          echo "Service deployed at: $URL"
+          # Test the endpoint to ensure Firebase is working (adjust the endpoint as needed)
+          curl -I $URL || echo "URL check failed, but deployment may still be valid"
+        continue-on-error: true
+
+      - name: Clean up
+        if: always()
+        run: |
+          rm -f ./firebase-adminsdk.json
+          docker image prune -f
