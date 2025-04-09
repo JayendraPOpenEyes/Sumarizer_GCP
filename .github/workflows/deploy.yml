@@ -72,6 +72,7 @@ jobs:
             --timeout=800s \
             --set-env-vars="GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-adminsdk.json" \
             --set-env-vars="OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" \
+            --set-env-vars="TOGETHERAI_API_KEY=${{ secrets.TOGETHERAI_API_KEY }}" \
             --set-env-vars="GOOGLE_CLOUD_PROJECT=${{ env.PROJECT_ID }}" \
             --quiet
         continue-on-error: false
