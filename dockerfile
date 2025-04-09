@@ -1,5 +1,5 @@
 # Use an official Python runtime as a parent image
-FROM python:3.10
+FROM python:3.12-slim
 
 # Install system dependencies required for PDF, image, and OCR processing
 RUN apt-get update && apt-get install -y \
