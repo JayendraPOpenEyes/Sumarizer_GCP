@@ -1,5 +1,5 @@
 # Use an official Python runtime as a parent image
-FROM python:3.11-bookworm
+FROM python:alpine
 
 # Install system dependencies required for PDF, image, and OCR processing
 RUN apt-get update && apt-get install -y \
