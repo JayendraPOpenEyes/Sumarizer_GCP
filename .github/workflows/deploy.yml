@@ -22,7 +22,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9' # Match the Dockerfile Python version
+          python-version: '3.13-slim' # Match the Dockerfile Python version
 
       - name: Install dependencies
         run: |
