@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>My Summaries</title>
   <style>
     /* Global Styles */
@@ -41,13 +41,14 @@
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     .dashboard-card h3 {
-      margin: 0 0 8px 0;
+      margin: 10px 0 4px;
       color: #333;
     }
     .dashboard-card p {
       margin: 0 0 10px;
       font-size: 0.95rem;
       color: #555;
+      word-wrap: break-word;
     }
     .dashboard-card .timestamp {
       font-size: 0.8rem;
@@ -88,24 +89,56 @@
         if (!response.ok) throw new Error('Network response was not ok');
         const data = await response.json();
         const container = document.getElementById('dashboard-container');
-        container.innerHTML = ''; // Clear loading text
+        container.innerHTML = ''; // Clear any loading message
 
         if (data.summaries && data.summaries.length > 0) {
           data.summaries.forEach(item => {
             const card = document.createElement('div');
             card.className = 'dashboard-card';
-            // If available, format timestamp from Firestore timestamp object.
-            let timestampHTML = '';
+
+            // Process main created timestamp (if stored as Firestore timestamp)
+            let createdTS = '';
             if (item.timestamp && item.timestamp.seconds) {
               const date = new Date(item.timestamp.seconds * 1000);
-              timestampHTML = `<div class="timestamp">${date.toLocaleString()}</div>`;
+              createdTS = `<p class="timestamp"><strong>Created:</strong> ${date.toLocaleString()}</p>`;
             }
-            card.innerHTML = `<h3>Prompt</h3>
-                              <p>${item.custom_prompt || 'N/A'}</p>
-                              <h3>Summary</h3>
-                              <p>${item.summary ? item.summary.substring(0, 150) + '...' : 'No summary available'}</p>
-                              <h4>Feedback: ${item.feedback || 'None'}</h4>
-                              ${timestampHTML}`;
+
+            // Process feedback timestamp (if available)
+            let feedbackTS = '';
+            if (item.feedback_timestamp && item.feedback_timestamp.seconds) {
+              const fbDate = new Date(item.feedback_timestamp.seconds * 1000);
+              feedbackTS = `<p><strong>Feedback Timestamp:</strong> ${fbDate.toLocaleString()}</p>`;
+            }
+
+            // Build card inner HTML showing all fields:
+            card.innerHTML = `
+              <h3>File Name</h3>
+              <p><strong>base_name:</strong> ${item.base_name || 'N/A'}</p>
+
+              <h3>Comment</h3>
+              <p>${item.comment || 'N/A'}</p>
+
+              <h3>Prompt</h3>
+              <p>${item.custom_prompt || 'N/A'}</p>
+
+              <h3>Summary</h3>
+              <p>${ item.summary 
+                    ? item.summary.substring(0, 150) + (item.summary.length > 150 ? '...' : '')
+                    : 'No summary available' }</p>
+
+              <h3>Feedback</h3>
+              <p><strong>feedback:</strong> ${item.feedback || 'None'}</p>
+              ${feedbackTS}
+
+              <h3>Input Data</h3>
+              <p><strong>input_data:</strong> ${item.input_data || 'N/A'}</p>
+
+              <h3>Model</h3>
+              <p><strong>model:</strong> ${item.model || 'N/A'}</p>
+
+              ${createdTS}
+            `;
+
             container.appendChild(card);
           });
         } else {
