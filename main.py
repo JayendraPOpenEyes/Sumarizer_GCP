@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 # Import the centralized Firebase initialization.
 from firebase_init import db, bucket
-# Add this import to use Firestore constants like SERVER_TIMESTAMP.
+# Import Firestore constants like SERVER_TIMESTAMP.
 from firebase_admin import firestore
 
 # Import your summarization functions and classes.
@@ -27,10 +27,19 @@ app = FastAPI(
 
 # Mount static files from the "static" directory.
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
 # Root endpoint to serve index.html.
 @app.get("/", response_class=HTMLResponse)
 async def read_index():
     return FileResponse("static/index.html")
+
+# New endpoint to serve the dashboard page.
+@app.get("/dashboard", response_class=HTMLResponse)
+async def read_dashboard():
+    """
+    Serve the dashboard page where Firebase summaries, feedbacks, and prompts are shown.
+    """
+    return FileResponse("static/dashboard.html")
 
 @app.get("/list_files")
 async def list_files():
@@ -50,6 +59,25 @@ async def list_files():
         return files
     except Exception as e:
         logging.error(f"Error listing files: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/summaries")
+async def get_summaries():
+    """
+    Fetch all summaries (with feedback and prompt data) for the guest user from Firestore.
+    Returns a JSON object with a list of summaries.
+    """
+    try:
+        summaries = []
+        # Retrieve documents from the guest_user's summaries collection.
+        docs = db.collection("users").document("guest_user").collection("summaries").stream()
+        for doc in docs:
+            data = doc.to_dict()
+            data["summary_id"] = doc.id
+            summaries.append(data)
+        return {"summaries": summaries}
+    except Exception as e:
+        logging.error(f"Error fetching summaries: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/summarize/url")
@@ -186,9 +214,6 @@ async def feedback(
             "comment": comment,
             "feedback_timestamp": firestore.SERVER_TIMESTAMP
         }
-        # Option A: Use update() if you are sure the document exists.
-        # summary_ref.update(update_data)
-        # Option B: Check existence and use set(merge=True) to avoid errors if missing.
         doc = summary_ref.get()
         if doc.exists:
             summary_ref.update(update_data)
