@@ -15,12 +15,12 @@
       color: #333;
     }
     .container {
-      max-width: 800px;
+      max-width: 1200px;
       margin: 20px auto;
       padding: 20px;
       background: #fff;
       border-radius: 8px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
     }
     header {
       text-align: center;
@@ -50,10 +50,16 @@
       color: #555;
       word-wrap: break-word;
     }
-    .dashboard-card .timestamp {
+    .timestamp {
       font-size: 0.8rem;
       color: #999;
       text-align: right;
+    }
+    .readmore {
+      color: #007BFF;
+      cursor: pointer;
+      font-size: 0.9rem;
+      margin-left: 5px;
     }
     /* Back Button */
     #back-button {
@@ -83,61 +89,124 @@
   </div>
 
   <script>
+    // Helper function: create an expandable summary element.
+    function createExpandableSummary(fullText) {
+      const threshold = 150;
+      const container = document.createElement('div');
+      const textElem = document.createElement('p');
+      let isExpanded = false;
+      
+      const toggleLink = document.createElement('span');
+      toggleLink.classList.add('readmore');
+      toggleLink.addEventListener('click', () => {
+        isExpanded = !isExpanded;
+        updateText();
+      });
+      
+      function updateText() {
+        if (isExpanded) {
+          textElem.textContent = fullText;
+          toggleLink.textContent = 'Read Less';
+        } else {
+          if (fullText.length > threshold) {
+            textElem.textContent = fullText.substring(0, threshold) + '...';
+            toggleLink.textContent = 'Read More';
+          } else {
+            textElem.textContent = fullText;
+            toggleLink.textContent = '';
+          }
+        }
+        if (toggleLink.textContent) {
+          textElem.appendChild(document.createTextNode(' '));
+          textElem.appendChild(toggleLink);
+        }
+      }
+      
+      updateText();
+      container.appendChild(textElem);
+      return container;
+    }
+
+    // Function to extract a numeric timestamp (in milliseconds) from a Firestore timestamp or ISO string.
+    function getNumericTimestamp(itemTimestamp) {
+      if (!itemTimestamp) return 0;
+      // If it's an object with seconds (Firestore timestamp)
+      if (typeof itemTimestamp === 'object' && itemTimestamp.seconds) {
+        return itemTimestamp.seconds * 1000;
+      }
+      // Otherwise, assume it's a string that can be parsed.
+      const t = Date.parse(itemTimestamp);
+      return isNaN(t) ? 0 : t;
+    }
+
     async function fetchSummaries() {
       try {
         const response = await fetch('/summaries');
         if (!response.ok) throw new Error('Network response was not ok');
         const data = await response.json();
         const container = document.getElementById('dashboard-container');
-        container.innerHTML = ''; // Clear any loading message
+        container.innerHTML = '';
 
         if (data.summaries && data.summaries.length > 0) {
+          // Log the raw timestamps for debugging.
+          console.log("Raw summaries:", data.summaries);
+
+          // Sort summaries in descending order by timestamp.
+          data.summaries.sort((a, b) => {
+            const aTime = getNumericTimestamp(a.timestamp);
+            const bTime = getNumericTimestamp(b.timestamp);
+            return bTime - aTime;
+          });
+
           data.summaries.forEach(item => {
             const card = document.createElement('div');
-            card.className = 'dashboard-card';
+            card.classList.add('dashboard-card');
 
-            // Process main created timestamp (if stored as Firestore timestamp)
-            let createdTS = '';
-            if (item.timestamp && item.timestamp.seconds) {
-              const date = new Date(item.timestamp.seconds * 1000);
-              createdTS = `<p class="timestamp"><strong>Created:</strong> ${date.toLocaleString()}</p>`;
+            function createHeading(text) {
+              const h3 = document.createElement('h3');
+              h3.textContent = text;
+              return h3;
             }
-
-            // Process feedback timestamp (if available)
-            let feedbackTS = '';
-            if (item.feedback_timestamp && item.feedback_timestamp.seconds) {
-              const fbDate = new Date(item.feedback_timestamp.seconds * 1000);
-              feedbackTS = `<p><strong>Feedback Timestamp:</strong> ${fbDate.toLocaleString()}</p>`;
+            function createParagraph(htmlContent) {
+              const p = document.createElement('p');
+              p.innerHTML = htmlContent;
+              return p;
             }
+            
+            card.appendChild(createHeading('File Name'));
+            card.appendChild(createParagraph(`<strong>base_name:</strong> ${item.base_name || 'N/A'}`));
 
-            // Build card inner HTML showing all fields:
-            card.innerHTML = `
-              <h3>File Name</h3>
-              <p><strong>base_name:</strong> ${item.base_name || 'N/A'}</p>
+            card.appendChild(createHeading('Comment'));
+            card.appendChild(createParagraph(item.comment || 'N/A'));
 
-              <h3>Comment</h3>
-              <p>${item.comment || 'N/A'}</p>
+            card.appendChild(createHeading('Prompt'));
+            card.appendChild(createParagraph(item.custom_prompt || 'N/A'));
 
-              <h3>Prompt</h3>
-              <p>${item.custom_prompt || 'N/A'}</p>
+            card.appendChild(createHeading('Summary'));
+            const summaryElem = createExpandableSummary(item.summary || 'No summary available');
+            card.appendChild(summaryElem);
 
-              <h3>Summary</h3>
-              <p>${ item.summary 
-                    ? item.summary.substring(0, 150) + (item.summary.length > 150 ? '...' : '')
-                    : 'No summary available' }</p>
+            card.appendChild(createHeading('Feedback'));
+            card.appendChild(createParagraph(`<strong>feedback:</strong> ${item.feedback || 'None'}`));
 
-              <h3>Feedback</h3>
-              <p><strong>feedback:</strong> ${item.feedback || 'None'}</p>
-              ${feedbackTS}
+            if (item.feedback_timestamp) {
+              const fbTime = getNumericTimestamp(item.feedback_timestamp);
+              card.appendChild(createParagraph(`<strong>Feedback Timestamp:</strong> ${new Date(fbTime).toLocaleString()}`));
+            }
+            
+            card.appendChild(createHeading('Input Data'));
+            card.appendChild(createParagraph(`<strong>input_data:</strong> ${item.input_data || 'N/A'}`));
 
-              <h3>Input Data</h3>
-              <p><strong>input_data:</strong> ${item.input_data || 'N/A'}</p>
+            card.appendChild(createHeading('Model'));
+            card.appendChild(createParagraph(`<strong>model:</strong> ${item.model || 'N/A'}`));
 
-              <h3>Model</h3>
-              <p><strong>model:</strong> ${item.model || 'N/A'}</p>
-
-              ${createdTS}
-            `;
+            if (item.timestamp) {
+              const createdTime = getNumericTimestamp(item.timestamp);
+              const createdP = document.createElement('p');
+              createdP.classList.add('timestamp');
+              createdP.innerHTML = `<strong>Created:</strong> ${new Date(createdTime).toLocaleString()}`;
+              card.appendChild(createdP);
+            }
 
             container.appendChild(card);
           });
