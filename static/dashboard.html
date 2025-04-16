@@ -5,75 +5,119 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>My Summaries</title>
   <style>
-    /* Global Styles */
-    body, html {
+    body {
       margin: 0;
-      padding: 0;
-      width: 100%;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #f4f4f4;
+      font-family: "Segoe UI", sans-serif;
+      background-color: #f7f9fc;
       color: #333;
     }
+
     .container {
-      max-width: 1200px;
-      margin: 20px auto;
-      padding: 20px;
+      max-width: 1000px;
+      margin: 40px auto;
+      padding: 30px;
       background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+      border-radius: 12px;
+      box-shadow: 0 0 30px rgba(0,0,0,0.05);
     }
-    header {
-      text-align: center;
+
+    #back-button {
+      display: inline-block;
       margin-bottom: 20px;
+      background-color: #4CAF50;
+      color: #fff;
+      padding: 10px 18px;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: bold;
+      transition: background-color 0.3s;
     }
+
+    #back-button:hover {
+      background-color: #388e3c;
+    }
+
     header h1 {
-      font-size: 2rem;
-      color: #4CAF50;
-      margin: 0;
+      font-size: 2.2rem;
+      color: #2e7d32;
+      text-align: center;
+      margin-bottom: 30px;
     }
-    /* Dashboard Cards */
-    .dashboard-card {
+
+    label {
+      font-weight: bold;
+      margin-right: 10px;
+    }
+
+    select {
+      padding: 10px;
+      border-radius: 6px;
       border: 1px solid #ccc;
-      border-radius: 4px;
+      font-size: 1rem;
+      width: auto;
+    }
+
+    .accordion-item {
+      margin-top: 20px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+    }
+
+    .accordion-header {
+      padding: 14px 20px;
+      background-color: #e8f5e9;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 1.1rem;
+      color: #1b5e20;
+      border-bottom: 1px solid #c8e6c9;
+    }
+
+    .accordion-body {
+      display: none;
+      padding: 20px;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .accordion-body.open {
+      display: block;
+    }
+
+    .summary-card {
+      background-color: #fefefe;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      margin-bottom: 16px;
       padding: 15px;
-      margin-bottom: 15px;
-      background: #fafafa;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    .dashboard-card h3 {
-      margin: 10px 0 4px;
-      color: #333;
+
+    .summary-card h3 {
+      margin-top: 0;
+      color: #2c3e50;
     }
-    .dashboard-card p {
-      margin: 0 0 10px;
+
+    .summary-card p {
       font-size: 0.95rem;
-      color: #555;
-      word-wrap: break-word;
+      margin: 6px 0;
     }
+
     .timestamp {
       font-size: 0.8rem;
-      color: #999;
+      color: #888;
       text-align: right;
     }
+
     .readmore {
-      color: #007BFF;
+      color: #1e88e5;
       cursor: pointer;
       font-size: 0.9rem;
       margin-left: 5px;
     }
-    /* Back Button */
-    #back-button {
-      display: inline-block;
-      margin-bottom: 20px;
-      background-color: #007BFF;
-      color: #fff;
-      padding: 8px 16px;
-      text-decoration: none;
-      border-radius: 4px;
-      transition: background-color 0.3s;
-    }
-    #back-button:hover {
-      background-color: #0056b3;
+
+    @keyframes fadeIn {
+      from {opacity: 0;}
+      to {opacity: 1;}
     }
   </style>
 </head>
@@ -83,141 +127,207 @@
     <header>
       <h1>My Summaries</h1>
     </header>
-    <div id="dashboard-container">
+
+    <div style="margin-bottom: 25px;">
+      <label for="summary-dropdown">Choose Summary Group:</label>
+      <select id="summary-dropdown">
+        <option value="all">Show All</option>
+      </select>
+    </div>
+
+    <div id="accordion-container">
       <p>Loading summaries...</p>
     </div>
   </div>
 
   <script>
-    // Helper function: create an expandable summary element.
+    function getNumericTimestamp(ts) {
+      if (!ts) return 0;
+      if (typeof ts === 'object' && ts.seconds) {
+        return ts.seconds * 1000;
+      }
+      const parsed = Date.parse(ts);
+      return isNaN(parsed) ? 0 : parsed;
+    }
+
     function createExpandableSummary(fullText) {
-      const threshold = 150;
+      const threshold = 160;
       const container = document.createElement('div');
-      const textElem = document.createElement('p');
       let isExpanded = false;
-      
-      const toggleLink = document.createElement('span');
-      toggleLink.classList.add('readmore');
-      toggleLink.addEventListener('click', () => {
+
+      const paragraph = document.createElement('p');
+      const toggle = document.createElement('span');
+      toggle.className = 'readmore';
+
+      function updateText() {
+        if (isExpanded) {
+          paragraph.textContent = fullText;
+          toggle.textContent = 'Read Less';
+        } else {
+          if (fullText.length > threshold) {
+            paragraph.textContent = fullText.slice(0, threshold) + '...';
+            toggle.textContent = 'Read More';
+          } else {
+            paragraph.textContent = fullText;
+            toggle.textContent = '';
+          }
+        }
+
+        container.innerHTML = '';
+        container.appendChild(paragraph);
+        if (toggle.textContent) {
+          container.appendChild(toggle);
+        }
+      }
+
+      toggle.addEventListener('click', () => {
         isExpanded = !isExpanded;
         updateText();
       });
-      
-      function updateText() {
-        if (isExpanded) {
-          textElem.textContent = fullText;
-          toggleLink.textContent = 'Read Less';
-        } else {
-          if (fullText.length > threshold) {
-            textElem.textContent = fullText.substring(0, threshold) + '...';
-            toggleLink.textContent = 'Read More';
-          } else {
-            textElem.textContent = fullText;
-            toggleLink.textContent = '';
-          }
-        }
-        if (toggleLink.textContent) {
-          textElem.appendChild(document.createTextNode(' '));
-          textElem.appendChild(toggleLink);
-        }
-      }
-      
+
       updateText();
-      container.appendChild(textElem);
       return container;
     }
 
-    // Function to extract a numeric timestamp (in milliseconds) from a Firestore timestamp or ISO string.
-    function getNumericTimestamp(itemTimestamp) {
-      if (!itemTimestamp) return 0;
-      // If it's an object with seconds (Firestore timestamp)
-      if (typeof itemTimestamp === 'object' && itemTimestamp.seconds) {
-        return itemTimestamp.seconds * 1000;
+    let groupedSummaries = [];
+
+    function populateDropdown(groups) {
+      const dropdown = document.getElementById("summary-dropdown");
+      dropdown.innerHTML = `<option value="all">Show All</option>`;
+      groups.forEach(group => {
+        const option = document.createElement("option");
+        option.value = group.groupKey;
+        option.textContent = group.groupKey;
+        dropdown.appendChild(option);
+      });
+
+      dropdown.addEventListener("change", () => {
+        const selected = dropdown.value;
+        displayAccordion(groupedSummaries, selected, true);
+      });
+    }
+
+    function displayAccordion(groupArray, selectedGroup = "all", expandSingle = false) {
+      const container = document.getElementById("accordion-container");
+      container.innerHTML = "";
+
+      const visibleGroups = selectedGroup === "all"
+        ? groupArray
+        : groupArray.filter(group => group.groupKey === selectedGroup);
+
+      if (visibleGroups.length === 0) {
+        container.innerHTML = "<p>No summaries found for the selected group.</p>";
+        return;
       }
-      // Otherwise, assume it's a string that can be parsed.
-      const t = Date.parse(itemTimestamp);
-      return isNaN(t) ? 0 : t;
+
+      visibleGroups.forEach((group, index) => {
+        const item = document.createElement("div");
+        item.className = "accordion-item";
+
+        const header = document.createElement("div");
+        header.className = "accordion-header";
+        header.textContent = `Summary for ${group.groupKey}`;
+        item.appendChild(header);
+
+        const body = document.createElement("div");
+        body.className = "accordion-body";
+
+        group.docs.forEach(doc => {
+          const card = document.createElement("div");
+          card.className = "summary-card";
+
+          if (doc.model) {
+            const h3 = document.createElement("h3");
+            h3.textContent = `Model: ${doc.model}`;
+            card.appendChild(h3);
+          }
+
+          if (doc.summary) {
+            const h3 = document.createElement("h3");
+            h3.textContent = "Summary";
+            card.appendChild(h3);
+            card.appendChild(createExpandableSummary(doc.summary));
+          }
+
+          if (doc.custom_prompt) {
+            const p = document.createElement("p");
+            p.innerHTML = `<strong>Prompt:</strong> ${doc.custom_prompt}`;
+            card.appendChild(p);
+          }
+
+          if (doc.feedback) {
+            const p = document.createElement("p");
+            p.innerHTML = `<strong>Feedback:</strong> ${doc.feedback}`;
+            card.appendChild(p);
+          }
+
+          if (doc.feedback_timestamp) {
+            const p = document.createElement("p");
+            const time = getNumericTimestamp(doc.feedback_timestamp);
+            p.innerHTML = `<strong>Feedback Time:</strong> ${new Date(time).toLocaleString()}`;
+            card.appendChild(p);
+          }
+
+          if (doc.timestamp) {
+            const ts = document.createElement("div");
+            ts.className = "timestamp";
+            const time = getNumericTimestamp(doc.timestamp);
+            ts.innerHTML = `<strong>Created:</strong> ${new Date(time).toLocaleString()}`;
+            card.appendChild(ts);
+          }
+
+          body.appendChild(card);
+        });
+
+        // Append the accordion parts
+        item.appendChild(body);
+        container.appendChild(item);
+
+        // If user selected this group → auto expand
+        if (expandSingle || selectedGroup !== "all") {
+          body.classList.add("open");
+        }
+
+        // Add toggle behavior
+        header.addEventListener("click", () => {
+          body.classList.toggle("open");
+        });
+      });
     }
 
     async function fetchSummaries() {
       try {
-        const response = await fetch('/summaries');
-        if (!response.ok) throw new Error('Network response was not ok');
-        const data = await response.json();
-        const container = document.getElementById('dashboard-container');
-        container.innerHTML = '';
+        const res = await fetch("/summaries");
+        const data = await res.json();
 
-        if (data.summaries && data.summaries.length > 0) {
-          // Log the raw timestamps for debugging.
-          console.log("Raw summaries:", data.summaries);
-
-          // Sort summaries in descending order by timestamp.
-          data.summaries.sort((a, b) => {
-            const aTime = getNumericTimestamp(a.timestamp);
-            const bTime = getNumericTimestamp(b.timestamp);
-            return bTime - aTime;
-          });
-
-          data.summaries.forEach(item => {
-            const card = document.createElement('div');
-            card.classList.add('dashboard-card');
-
-            function createHeading(text) {
-              const h3 = document.createElement('h3');
-              h3.textContent = text;
-              return h3;
-            }
-            function createParagraph(htmlContent) {
-              const p = document.createElement('p');
-              p.innerHTML = htmlContent;
-              return p;
-            }
-            
-            card.appendChild(createHeading('File Name'));
-            card.appendChild(createParagraph(`<strong>base_name:</strong> ${item.base_name || 'N/A'}`));
-
-            card.appendChild(createHeading('Comment'));
-            card.appendChild(createParagraph(item.comment || 'N/A'));
-
-            card.appendChild(createHeading('Prompt'));
-            card.appendChild(createParagraph(item.custom_prompt || 'N/A'));
-
-            card.appendChild(createHeading('Summary'));
-            const summaryElem = createExpandableSummary(item.summary || 'No summary available');
-            card.appendChild(summaryElem);
-
-            card.appendChild(createHeading('Feedback'));
-            card.appendChild(createParagraph(`<strong>feedback:</strong> ${item.feedback || 'None'}`));
-
-            if (item.feedback_timestamp) {
-              const fbTime = getNumericTimestamp(item.feedback_timestamp);
-              card.appendChild(createParagraph(`<strong>Feedback Timestamp:</strong> ${new Date(fbTime).toLocaleString()}`));
-            }
-            
-            card.appendChild(createHeading('Input Data'));
-            card.appendChild(createParagraph(`<strong>input_data:</strong> ${item.input_data || 'N/A'}`));
-
-            card.appendChild(createHeading('Model'));
-            card.appendChild(createParagraph(`<strong>model:</strong> ${item.model || 'N/A'}`));
-
-            if (item.timestamp) {
-              const createdTime = getNumericTimestamp(item.timestamp);
-              const createdP = document.createElement('p');
-              createdP.classList.add('timestamp');
-              createdP.innerHTML = `<strong>Created:</strong> ${new Date(createdTime).toLocaleString()}`;
-              card.appendChild(createdP);
-            }
-
-            container.appendChild(card);
-          });
-        } else {
-          container.innerHTML = '<p>No summaries found.</p>';
+        if (!data.summaries || data.summaries.length === 0) {
+          document.getElementById("accordion-container").innerHTML = "<p>No summaries found.</p>";
+          return;
         }
-      } catch (error) {
-        console.error('Error fetching summaries:', error);
-        document.getElementById('dashboard-container').innerHTML = '<p>Error loading summaries.</p>';
+
+        const grouped = {};
+        data.summaries.forEach(doc => {
+          const key = doc.base_name || doc.input_data || "Unknown Source";
+          if (!grouped[key]) grouped[key] = [];
+          grouped[key].push(doc);
+        });
+
+        const groupArray = Object.keys(grouped).map(key => {
+          const docs = grouped[key].sort((a, b) => getNumericTimestamp(b.timestamp) - getNumericTimestamp(a.timestamp));
+          return { groupKey: key, docs, latestTimestamp: getNumericTimestamp(docs[0].timestamp) };
+        });
+
+        groupArray.sort((a, b) => b.latestTimestamp - a.latestTimestamp);
+        groupedSummaries = groupArray;
+
+        populateDropdown(groupArray);
+        displayAccordion(groupArray);
+      } catch (err) {
+        console.error("Fetch error:", err);
+        document.getElementById("accordion-container").innerHTML = "<p>Error loading summaries.</p>";
       }
     }
+
     window.onload = fetchSummaries;
   </script>
 </body>
