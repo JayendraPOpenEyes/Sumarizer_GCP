@@ -3,196 +3,179 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>History</title>
+  <title>Summary Dashboard</title>
   <style>
+    :root {
+      --primary: #2563eb;
+      --secondary: #1e40af;
+      --background: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --text-light: #64748b;
+      --border: #e2e8f0;
+    }
+
     body {
       margin: 0;
-      font-family: "Segoe UI", sans-serif;
-      background-color: #f7f9fc;
-      color: #333;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--background);
+      color: var(--text);
     }
 
     .container {
-      max-width: 1000px;
-      margin: 40px auto;
-      padding: 30px;
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 0 30px rgba(0,0,0,0.05);
+      max-width: 1100px;
+      margin: 2rem auto;
+      padding: 2rem;
+      background: var(--card-bg);
+      border-radius: 1rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     }
 
-    #back-button {
+    .back-button {
       display: inline-block;
-      margin-bottom: 20px;
-      background-color: #4CAF50;
+      background-color: var(--primary);
       color: #fff;
-      padding: 10px 18px;
-      text-decoration: none;
+      padding: 10px 20px;
       border-radius: 6px;
-      font-weight: bold;
-      transition: background-color 0.3s;
-    }
-
-    #back-button:hover {
-      background-color: #388e3c;
+      text-decoration: none;
+      font-weight: 500;
+      margin-bottom: 20px;
     }
 
     header h1 {
-      font-size: 2.2rem;
-      color: #2e7d32;
+      font-size: 2.4rem;
       text-align: center;
       margin-bottom: 30px;
+      color: var(--primary);
     }
 
-    label {
-      font-weight: bold;
-      margin-right: 10px;
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 1.5rem;
     }
 
-    select {
+    .filters input,
+    .filters select {
+      flex: 1;
+      min-width: 160px;
       padding: 10px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
       font-size: 1rem;
-      width: auto;
+      border: 1px solid var(--border);
+      border-radius: 6px;
     }
 
     .accordion-item {
-      margin-top: 20px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+      margin-bottom: 1rem;
+      border-radius: 0.75rem;
+      background: var(--card-bg);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
     }
 
     .accordion-header {
-      padding: 14px 20px;
-      background-color: #e8f5e9;
-      cursor: pointer;
+      padding: 1rem;
       font-weight: bold;
-      font-size: 1.1rem;
-      color: #1b5e20;
-      border-bottom: 1px solid #c8e6c9;
+      background-color: #f1f5f9;
+      cursor: pointer;
     }
 
     .accordion-body {
-      display: none;
-      padding: 20px;
-      animation: fadeIn 0.3s ease-in-out;
-    }
-
-    .accordion-body.open {
-      display: block;
+      padding: 1rem 1.5rem;
     }
 
     .summary-card {
-      background-color: #fefefe;
-      border: 1px solid #e0e0e0;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--primary);
       border-radius: 6px;
-      margin-bottom: 16px;
-      padding: 15px;
+      margin-bottom: 1rem;
+      padding: 0.75rem;
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+    }
+
+    .summary-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
     .summary-card h3 {
-      margin-top: 0;
-      color: #2c3e50;
+      font-size: 1rem;
+      margin: 0 0 0.5rem 0;
+      color: var(--secondary);
     }
 
-    .summary-card p {
+    .card-content {
+      display: none;
+      margin-top: 0.5rem;
       font-size: 0.95rem;
-      margin: 6px 0;
+    }
+
+    .card-content.open {
+      display: block;
     }
 
     .timestamp {
-      font-size: 0.8rem;
-      color: #888;
       text-align: right;
+      font-size: 0.85rem;
+      color: var(--text-light);
+      margin-top: 0.5rem;
     }
 
-    .readmore {
-      color: #1e88e5;
-      cursor: pointer;
-      font-size: 0.9rem;
-      margin-left: 5px;
+    .loader {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid var(--primary);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 2rem auto;
     }
 
-    @keyframes fadeIn {
-      from {opacity: 0;}
-      to {opacity: 1;}
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <a id="back-button" href="/">← Back to Home</a>
+    <a class="back-button" href="/">← Back to Home</a>
     <header>
-      <h1>History</h1>
+      <h1>Summary Dashboard</h1>
     </header>
 
-    <div style="margin-bottom: 25px;">
-      <label for="summary-dropdown">Choose Summary Group:</label>
-      <select id="summary-dropdown">
+    <div class="filters">
+      <input type="text" id="search-input" placeholder="Search by keyword..." />
+      <select id="group-dropdown">
         <option value="all">Show All</option>
+      </select>
+      <select id="date-filter">
+        <option value="all">All Dates</option>
+        <option value="24h">Last 24 Hours</option>
+        <option value="7d">Last 7 Days</option>
+        <option value="30d">Last 30 Days</option>
       </select>
     </div>
 
     <div id="accordion-container">
-      <p>Loading summaries...</p>
+      <div class="loader"></div>
     </div>
   </div>
 
   <script>
     function getNumericTimestamp(ts) {
       if (!ts) return 0;
-      if (typeof ts === 'object' && ts.seconds) {
-        return ts.seconds * 1000;
-      }
+      if (typeof ts === 'object' && ts.seconds) return ts.seconds * 1000;
       const parsed = Date.parse(ts);
       return isNaN(parsed) ? 0 : parsed;
-    }
-
-    function createExpandableSummary(fullText) {
-      const threshold = 160;
-      const container = document.createElement('div');
-      let isExpanded = false;
-
-      const paragraph = document.createElement('p');
-      const toggle = document.createElement('span');
-      toggle.className = 'readmore';
-
-      function updateText() {
-        if (isExpanded) {
-          paragraph.textContent = fullText;
-          toggle.textContent = 'Read Less';
-        } else {
-          if (fullText.length > threshold) {
-            paragraph.textContent = fullText.slice(0, threshold) + '...';
-            toggle.textContent = 'Read More';
-          } else {
-            paragraph.textContent = fullText;
-            toggle.textContent = '';
-          }
-        }
-
-        container.innerHTML = '';
-        container.appendChild(paragraph);
-        if (toggle.textContent) {
-          container.appendChild(toggle);
-        }
-      }
-
-      toggle.addEventListener('click', () => {
-        isExpanded = !isExpanded;
-        updateText();
-      });
-
-      updateText();
-      return container;
     }
 
     let groupedSummaries = [];
 
     function populateDropdown(groups) {
-      const dropdown = document.getElementById("summary-dropdown");
+      const dropdown = document.getElementById("group-dropdown");
       dropdown.innerHTML = `<option value="all">Show All</option>`;
       groups.forEach(group => {
         const option = document.createElement("option");
@@ -201,26 +184,47 @@
         dropdown.appendChild(option);
       });
 
-      dropdown.addEventListener("change", () => {
-        const selected = dropdown.value;
-        displayAccordion(groupedSummaries, selected, true);
-      });
+      dropdown.addEventListener("change", applyFilters);
+      document.getElementById("date-filter").addEventListener("change", applyFilters);
     }
 
-    function displayAccordion(groupArray, selectedGroup = "all", expandSingle = false) {
+    function applyFilters() {
+      const selectedGroup = document.getElementById("group-dropdown").value;
+      const keyword = document.getElementById("search-input").value.toLowerCase();
+      const selectedDate = document.getElementById("date-filter").value;
+      displayAccordion(groupedSummaries, selectedGroup, keyword, selectedDate);
+    }
+
+    function displayAccordion(groupArray, selectedGroup = "all", keyword = "", selectedDate = "all") {
       const container = document.getElementById("accordion-container");
       container.innerHTML = "";
+
+      const now = Date.now();
+      let timeFilter = 0;
+      if (selectedDate === "24h") timeFilter = now - 86400000;
+      else if (selectedDate === "7d") timeFilter = now - 7 * 86400000;
+      else if (selectedDate === "30d") timeFilter = now - 30 * 86400000;
 
       const visibleGroups = selectedGroup === "all"
         ? groupArray
         : groupArray.filter(group => group.groupKey === selectedGroup);
 
-      if (visibleGroups.length === 0) {
-        container.innerHTML = "<p>No summaries found for the selected group.</p>";
-        return;
-      }
+      visibleGroups.forEach(group => {
+        const filteredDocs = group.docs.filter(doc => {
+          const contentMatch = keyword === "" || (
+            (doc.summary || "").toLowerCase().includes(keyword) ||
+            (doc.custom_prompt || "").toLowerCase().includes(keyword) ||
+            (doc.model || "").toLowerCase().includes(keyword)
+          );
 
-      visibleGroups.forEach((group, index) => {
+          const time = getNumericTimestamp(doc.timestamp);
+          const dateMatch = selectedDate === "all" || time >= timeFilter;
+
+          return contentMatch && dateMatch;
+        });
+
+        if (filteredDocs.length === 0) return;
+
         const item = document.createElement("div");
         item.className = "accordion-item";
 
@@ -232,46 +236,42 @@
         const body = document.createElement("div");
         body.className = "accordion-body";
 
-        group.docs.forEach(doc => {
+        filteredDocs.forEach(doc => {
           const card = document.createElement("div");
           card.className = "summary-card";
 
-          if (doc.model) {
-            const h3 = document.createElement("h3");
-            h3.textContent = `Model: ${doc.model}`;
-            card.appendChild(h3);
-          }
+          const title = document.createElement("h3");
+          title.textContent = doc.model ? `Model: ${doc.model}` : "Summary";
+          card.appendChild(title);
+
+          const content = document.createElement("div");
+          content.className = "card-content";
 
           if (doc.summary) {
-            const h3 = document.createElement("h3");
-            h3.textContent = "Summary";
-            card.appendChild(h3);
-            card.appendChild(createExpandableSummary(doc.summary));
+            const p = document.createElement("p");
+            p.innerHTML = `<strong>Summary:</strong> ${doc.summary}`;
+            content.appendChild(p);
           }
 
           if (doc.custom_prompt) {
             const p = document.createElement("p");
             p.innerHTML = `<strong>Prompt:</strong> ${doc.custom_prompt}`;
-            card.appendChild(p);
+            content.appendChild(p);
           }
 
-          if (doc.feedback) {
-            const p = document.createElement("p");
-            p.innerHTML = `<strong>Feedback:</strong> ${doc.feedback}`;
-            card.appendChild(p);
-          }
+          const feedbackP = document.createElement("p");
+          feedbackP.innerHTML = `<strong>Feedback:</strong> ${doc.feedback || 'N/A'}`;
+          content.appendChild(feedbackP);
 
-          if (doc.comment) {
-            const p = document.createElement("p");
-            p.innerHTML = `<strong>Comment:</strong> ${doc.comment}`;
-            card.appendChild(p);
-          }
+          const commentP = document.createElement("p");
+          commentP.innerHTML = `<strong>Comment:</strong> ${doc.comment || 'N/A'}`;
+          content.appendChild(commentP);
 
           if (doc.feedback_timestamp) {
             const p = document.createElement("p");
             const time = getNumericTimestamp(doc.feedback_timestamp);
             p.innerHTML = `<strong>Feedback Time:</strong> ${new Date(time).toLocaleString()}`;
-            card.appendChild(p);
+            content.appendChild(p);
           }
 
           if (doc.timestamp) {
@@ -279,26 +279,24 @@
             ts.className = "timestamp";
             const time = getNumericTimestamp(doc.timestamp);
             ts.innerHTML = `<strong>Created:</strong> ${new Date(time).toLocaleString()}`;
-            card.appendChild(ts);
+            content.appendChild(ts);
           }
+
+          card.appendChild(content);
+          card.addEventListener("click", () => {
+            content.classList.toggle("open");
+          });
 
           body.appendChild(card);
         });
 
-        // Append the accordion parts
         item.appendChild(body);
         container.appendChild(item);
-
-        // If user selected this group → auto expand
-        if (expandSingle || selectedGroup !== "all") {
-          body.classList.add("open");
-        }
-
-        // Add toggle behavior
-        header.addEventListener("click", () => {
-          body.classList.toggle("open");
-        });
       });
+
+      if (!container.hasChildNodes()) {
+        container.innerHTML = "<p>No summaries match your filters.</p>";
+      }
     }
 
     async function fetchSummaries() {
@@ -334,6 +332,7 @@
       }
     }
 
+    document.getElementById("search-input").addEventListener("input", applyFilters);
     window.onload = fetchSummaries;
   </script>
 </body>
