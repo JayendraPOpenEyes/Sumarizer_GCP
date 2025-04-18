@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>My Summaries</title>
+  <title>History</title>
   <style>
     body {
       margin: 0;
@@ -125,7 +125,7 @@
   <div class="container">
     <a id="back-button" href="/">← Back to Home</a>
     <header>
-      <h1>My Summaries</h1>
+      <h1>History</h1>
     </header>
 
     <div style="margin-bottom: 25px;">
@@ -258,6 +258,12 @@
           if (doc.feedback) {
             const p = document.createElement("p");
             p.innerHTML = `<strong>Feedback:</strong> ${doc.feedback}`;
+            card.appendChild(p);
+          }
+
+          if (doc.comment) {
+            const p = document.createElement("p");
+            p.innerHTML = `<strong>Comment:</strong> ${doc.comment}`;
             card.appendChild(p);
           }
 
