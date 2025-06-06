@@ -47,8 +47,10 @@ async def list_files():
     List previously uploaded files for the guest user.
     Returns a JSON object mapping file names to signed URLs.
     """
+    logging.info("Received request for /list_files endpoint")  # Debug log
     try:
         prefix = "users/guest_user/"  # Folder for guest user files.
+        logging.info(f"Listing blobs with prefix: {prefix}")
         blobs = bucket.list_blobs(prefix=prefix)
         files = {}
         for blob in blobs:
@@ -56,6 +58,8 @@ async def list_files():
             if file_name:
                 file_url = blob.generate_signed_url(expiration=timedelta(hours=1))
                 files[file_name] = file_url
+                logging.info(f"Found file: {file_name}, URL: {file_url}")
+        logging.info(f"Returning files: {files}")
         return files
     except Exception as e:
         logging.error(f"Error listing files: {e}")

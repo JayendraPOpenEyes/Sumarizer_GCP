@@ -215,7 +215,7 @@
       background-color: #45a049;
     }
     .hidden {
-      display: none;
+      display: none !important;
     }
     .flex-between {
       display: flex;
@@ -239,6 +239,11 @@
       font-size: 1.2rem;
       color: #4CAF50;
       margin: 20px 0;
+    }
+    .error-message {
+      color: red;
+      font-size: 0.9rem;
+      margin-top: 5px;
     }
   </style>
 </head>
@@ -276,6 +281,7 @@
           <!-- Options will be populated dynamically -->
         </select>
         <input type="hidden" id="overrideBaseName" name="override_base_name" value="">
+        <div id="chooseFileError" class="error-message hidden"></div>
       </div>
       <div class="form-group">
         <div class="flex-between">
@@ -304,13 +310,12 @@
   <script>
     // Sample Prompt functionality
     const samplePromptText = `Summarize the provided legislative document, focusing only on new provisions introduced by this bill.
-Start each summary with 'This measure...'.
+Start summary with 'This measure...'.
 The summary must be at least one paragraph long (minimum 4-6 sentences) and no longer than a full page,
 detailing key changes such as definitions, rules, or exemptions, without including opinions, current laws,
 or repetitive statements.
-Do not add a title, introduction, or conclusion; the entire text should be the summary.
-If the document specifies an effective date, end the summary with 'This measure has an effective date of: [date]',
-using the exact date provided.`;
+Do not add a title, introduction, or conclusion (e.g., 'in summary'); the entire text should be the summary.
+Mention effective date if it is there inside the document at the end.`;
 
     document.getElementById('samplePromptButton').addEventListener('click', function() {
       document.getElementById('customPrompt').value = samplePromptText;
@@ -323,31 +328,50 @@ using the exact date provided.`;
     const chooseFileGroup = document.getElementById('chooseFileGroup');
     const chooseFileEl = document.getElementById('chooseFile');
     const overrideBaseNameEl = document.getElementById('overrideBaseName');
+    const customPromptEl = document.getElementById('customPrompt');
+    const documentUrlEl = document.getElementById('documentUrl');
+    const chooseFileErrorEl = document.getElementById('chooseFileError');
 
-    inputTypeEl.addEventListener('change', function() {
-      const selected = this.value;
+    function updateFormGroups(selected) {
+      console.log("Updating form groups for input type:", selected); // Debug log
+      chooseFileErrorEl.classList.add('hidden');
+      urlGroup.classList.add('hidden');
+      fileGroup.classList.add('hidden');
+      chooseFileGroup.classList.add('hidden');
+
       if (selected === 'url') {
         urlGroup.classList.remove('hidden');
-        fileGroup.classList.add('hidden');
-        chooseFileGroup.classList.add('hidden');
+        console.log("Showing urlGroup, hiding fileGroup and chooseFileGroup"); // Debug log
       } else if (selected === 'upload') {
         fileGroup.classList.remove('hidden');
-        urlGroup.classList.add('hidden');
-        chooseFileGroup.classList.add('hidden');
+        console.log("Showing fileGroup, hiding urlGroup and chooseFileGroup"); // Debug log
       } else if (selected === 'choose_file') {
         chooseFileGroup.classList.remove('hidden');
-        urlGroup.classList.add('hidden');
-        fileGroup.classList.add('hidden');
+        console.log("Showing chooseFileGroup, hiding urlGroup and fileGroup"); // Debug log
         fetchFiles();
       }
+
+      // Log the current classes after update
+      console.log("After update - urlGroup classes:", urlGroup.className);
+      console.log("After update - fileGroup classes:", fileGroup.className);
+      console.log("After update - chooseFileGroup classes:", chooseFileGroup.className);
+    }
+
+    inputTypeEl.addEventListener('change', function(e) {
+      console.log("inputType change event triggered, new value:", this.value); // Debug log
+      updateFormGroups(this.value);
     });
 
     // Fetch list of files from the API for guest user
     async function fetchFiles() {
       try {
+        console.log("Fetching files from /list_files"); // Debug log
         const response = await fetch('/list_files');
-        if (!response.ok) throw new Error('Could not fetch file list');
+        if (!response.ok) {
+          throw new Error(`Could not fetch summary files (Status: ${response.status})`);
+        }
         const files = await response.json();
+        console.log("Fetched files:", files); // Debug log
         chooseFileEl.innerHTML = "";
         for (const [fileName, fileUrl] of Object.entries(files)) {
           const option = document.createElement('option');
@@ -356,17 +380,19 @@ using the exact date provided.`;
           option.setAttribute('data-filename', fileName);
           chooseFileEl.appendChild(option);
         }
-        if (chooseFileEl.options.length > 0) {
-          overrideBaseNameEl.value = chooseFileEl.options[0].getAttribute('data-filename');
-        }
+        return files; // Return the files for use in prefill logic
       } catch (error) {
-        console.error(error);
+        console.error("Error fetching files:", error);
+        chooseFileErrorEl.textContent = "Error fetching files: " + error.message + ". Check server logs or try again later.";
+        chooseFileErrorEl.classList.remove('hidden');
+        return null;
       }
     }
 
     chooseFileEl.addEventListener('change', function() {
       const selectedOption = this.options[this.selectedIndex];
       overrideBaseNameEl.value = selectedOption.getAttribute('data-filename');
+      console.log("Selected file changed, overrideBaseName set to:", overrideBaseNameEl.value); // Debug log
     });
 
     // Typewriter Effect function
@@ -396,6 +422,119 @@ using the exact date provided.`;
         console.error("Error copying text: ", err);
       });
     }
+
+    // Function to validate if a string is a URL
+    function isValidUrl(string) {
+      try {
+        new URL(string);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    // Handle query parameters on page load to prefill form fields
+    document.addEventListener('DOMContentLoaded', async function() {
+      console.log("Starting DOMContentLoaded handler"); // Debug log
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const fileUrl = params.get('file_url');
+        const customPromptRaw = params.get('custom_prompt');
+        const customPrompt = customPromptRaw ? decodeURIComponent(customPromptRaw) : null;
+        const baseName = params.get('base_name');
+        const inputData = params.get('input_data');
+        const summaryId = params.get('summary_id');
+
+        console.log("Query Parameters:", { fileUrl, customPromptRaw, customPrompt, baseName, inputData, summaryId }); // Debug log
+
+        // Populate custom prompt if present
+        if (customPrompt) {
+          customPromptEl.value = customPrompt;
+          console.log("Custom prompt populated:", customPrompt); // Debug log
+        } else {
+          console.log("No custom_prompt in query parameters"); // Debug log
+        }
+
+        if (fileUrl) {
+          // Handle file-based summary reuse
+          console.log("file_url present, setting input type to choose_file"); // Debug log
+          inputTypeEl.value = 'choose_file';
+          console.log("inputTypeEl value after setting:", inputTypeEl.value); // Debug log
+
+          // Update the UI immediately
+          updateFormGroups('choose_file');
+
+          // Dispatch the change event after a small delay
+          setTimeout(() => {
+            const changeEvent = new Event('change', { bubbles: true });
+            inputTypeEl.dispatchEvent(changeEvent);
+            console.log("Input type set to choose_file, change event dispatched"); // Debug log
+          }, 0);
+
+          // Wait for fetchFiles to complete and then select the file
+          const files = await fetchFiles();
+          if (files && fileUrl) {
+            const option = Array.from(chooseFileEl.options).find(opt => opt.value === fileUrl);
+            if (option) {
+              chooseFileEl.value = fileUrl;
+              overrideBaseNameEl.value = option.getAttribute('data-filename') || baseName || '';
+              console.log("Selected file in dropdown:", chooseFileEl.value, "overrideBaseName:", overrideBaseNameEl.value); // Debug log
+            } else {
+              console.warn("File URL not found in available files:", fileUrl);
+              chooseFileErrorEl.textContent = "The file associated with this summary is not available. Please select another file or upload a new one.";
+              chooseFileErrorEl.classList.remove('hidden');
+            }
+          } else {
+            console.log("No files fetched or fileUrl is invalid:", { files, fileUrl }); // Debug log
+            chooseFileErrorEl.textContent = "Unable to fetch files. Please try again.";
+            chooseFileErrorEl.classList.remove('hidden');
+          }
+        } else if (inputData) {
+          // Handle URL-based summary reuse
+          console.log("No file_url but input_data present, setting input type to url"); // Debug log
+          inputTypeEl.value = 'url';
+          updateFormGroups('url');
+          setTimeout(() => {
+            const changeEvent = new Event('change', { bubbles: true });
+            inputTypeEl.dispatchEvent(changeEvent);
+            console.log("Input type set to url, change event dispatched"); // Debug log
+          }, 0);
+
+          // Validate inputData as a URL before setting it
+          if (isValidUrl(inputData)) {
+            documentUrlEl.value = inputData;
+            console.log("Input type set to url, documentUrl populated:", inputData); // Debug log
+          } else {
+            console.warn("input_data is not a valid URL:", inputData);
+            chooseFileErrorEl.textContent = "The URL associated with this summary is invalid. Please enter a valid URL manually.";
+            chooseFileErrorEl.classList.remove('hidden');
+          }
+        } else {
+          // Default behavior: show URL input
+          console.log("No file_url or input_data provided, defaulting to URL input"); // Debug log
+          inputTypeEl.value = 'url';
+          updateFormGroups('url');
+          setTimeout(() => {
+            const changeEvent = new Event('change', { bubbles: true });
+            inputTypeEl.dispatchEvent(changeEvent);
+            console.log("Default input type set to url, change event dispatched"); // Debug log
+          }, 0);
+          if (!customPrompt) {
+            console.log("No custom_prompt or input data provided for reuse"); // Debug log
+            chooseFileErrorEl.textContent = "No valid reuse data provided. Please enter the details manually.";
+            chooseFileErrorEl.classList.remove('hidden');
+          }
+        }
+        console.log("Finished DOMContentLoaded handler"); // Debug log
+      } catch (error) {
+        console.error("Error in DOMContentLoaded handler:", error);
+        chooseFileErrorEl.textContent = "An error occurred while prefilling the form: " + error.message + ". Please try again.";
+        chooseFileErrorEl.classList.remove('hidden');
+        // Ensure the form is visible even if an error occurs
+        inputTypeEl.value = 'url';
+        updateFormGroups('url');
+      }
+    });
 
     // Handle form submission: display summaries with typewriter effect and add feedback controls
     document.getElementById('summarize-form').addEventListener('submit', async function(e) {

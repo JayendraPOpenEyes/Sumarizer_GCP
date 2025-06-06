@@ -133,6 +133,22 @@
       margin: 2rem auto;
     }
 
+    .reuse-btn {
+      background-color: #4CAF50;
+      color: white;
+      padding: 6px 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+      display: inline-block;
+    }
+
+    .reuse-btn:hover {
+      background-color: #45a049;
+    }
+
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
@@ -282,9 +298,28 @@
             content.appendChild(ts);
           }
 
+          // Add Reuse Prompt button
+          const reuseBtn = document.createElement("button");
+          reuseBtn.className = "reuse-btn";
+          reuseBtn.textContent = "Reuse Prompt";
+          reuseBtn.addEventListener("click", () => {
+            console.log("Summary document being reused:", doc); // Debug log
+            const params = new URLSearchParams();
+            if (doc.file_url) params.append("file_url", doc.file_url);
+            if (doc.input_data) params.append("input_data", doc.input_data);
+            if (doc.custom_prompt) params.append("custom_prompt", encodeURIComponent(doc.custom_prompt));
+            if (doc.base_name || doc.input_data) params.append("base_name", doc.base_name || doc.input_data);
+            if (doc.id) params.append("summary_id", doc.id); // Add summary_id
+            console.log("Redirecting with params:", params.toString()); // Debug log
+            window.location.href = `/?${params.toString()}`;
+          });
+          content.appendChild(reuseBtn);
+
           card.appendChild(content);
-          card.addEventListener("click", () => {
-            content.classList.toggle("open");
+          card.addEventListener("click", (e) => {
+            if (e.target !== reuseBtn) {
+              content.classList.toggle("open");
+            }
           });
 
           body.appendChild(card);
